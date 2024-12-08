@@ -1,0 +1,40 @@
+Core Features and Future Considerations
+Patient Management
+
+Features: List, add, edit, delete patients.
+Components:
+PatientCard.vue for reusable patient display.
+PatientForm.vue for adding/editing patients.
+Service: patientService.js to handle API calls (GET, POST, PUT, DELETE).
+Doctor Management
+
+Similar structure as patient management with DoctorList.vue and DoctorForm.vue.
+Medical Records
+
+Features: View and manage a patient's medical history.
+Components:
+MedicalRecordList.vue for listing records.
+MedicalRecordForm.vue for adding/editing records.
+Appointment Scheduling
+
+Features: View upcoming appointments, schedule, and reschedule.
+Components:
+AppointmentCalendar.vue (calendar view for appointments).
+AppointmentForm.vue for adding/editing appointments.
+Authentication
+
+Pages: Login.vue and Signup.vue.
+Service: authService.js to manage login, logout, and token storage.
+Future Features
+Reports
+
+Add a new module (report.js) in the store and pages like ReportList.vue and ReportForm.vue.
+Integrate with a report generation library like jspdf or backend API for PDF generation.
+Prescriptions
+
+Include prescription templates in the Doctor or MedicalRecord modules.
+Add components like PrescriptionList.vue and PrescriptionForm.vue.
+AI Support
+
+Introduce a service (aiService.js) for calling AI-based APIs for recommendations or predictions.
+Example: "Suggest best appointment times" or "Generate treatment plans."
