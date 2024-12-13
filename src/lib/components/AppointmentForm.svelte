@@ -1,36 +1,48 @@
 <!-- src/lib/components/AppointmentForm.svelte -->
 <script lang="ts">
-    import { createEventDispatcher, onMount } from 'svelte';
+    import { onMount } from 'svelte';
     import { format, parse, isValid } from 'date-fns';
-    import type { Appointment, Doctor, Patient } from '$lib/types';
+    import type { Appointment, Doctor, Patient } from '$lib/types/index';
     import doctorService from '$lib/services/doctor';
     import patientService from '$lib/services/patient';
     import appointmentService from '$lib/services/appointment';
-    import { z } from 'zod';
-    import toast from 'svelte-french-toast';
+    import { toast } from "svelte-sonner";
 
-    export let appointment: Partial<Appointment> = {};
-    export let loading = false;
-
-    const dispatch = createEventDispatcher<{
-        submit: Omit<Appointment, 'id' | 'created_at' | 'updated_at'>;
+    let props = $props<{
+        appointment?: Partial<Appointment>;
+        loading?: boolean;
+        onSubmit: (data: Omit<Appointment, 'id' | 'created_at' | 'updated_at'>) => void;
     }>();
 
-    let errors: Record<string, string> = {};
-    let doctors: Doctor[] = [];
-    let patients: Patient[] = [];
-    let availableSlots: string[] = [];
-    let selectedDate = '';
-    let selectedTime = '';
-    let loadingSlots = false;
+    let appointment = $state<Partial<Appointment>>(props.appointment ?? {});
+    let loading = $derived(props.loading ?? false);
+    let errors = $state<Record<string, string>>({});
+    let doctors = $state<Doctor[]>([]);
+    let patients = $state<Patient[]>([]);
+    let availableSlots = $state<string[]>([]);
+    let selectedDate = $state('');
+    let selectedTime = $state('');
+    let loadingSlots = $state(false);
 
-    const appointmentSchema = z.object({
-        patient_id: z.string().min(1, 'Patient is required'),
-        doctor_id: z.string().min(1, 'Doctor is required'),
-        appointment_date: z.string().min(1, 'Appointment date and time is required'),
-        status: z.enum(['Pending', 'Confirmed', 'Cancelled']),
-        notes: z.string().optional()
-    });
+    function validateForm(data: Partial<Appointment>): boolean {
+        const newErrors: Record<string, string> = {};
+
+        if (!data.patient_id) {
+            newErrors.patient_id = 'Patient is required';
+        }
+        if (!data.doctor_id) {
+            newErrors.doctor_id = 'Doctor is required';
+        }
+        if (!selectedDate || !selectedTime) {
+            newErrors.appointment_date = 'Appointment date and time is required';
+        }
+        if (data.status && !['Pending', 'Confirmed', 'Cancelled'].includes(data.status)) {
+            newErrors.status = 'Invalid status';
+        }
+
+        errors = newErrors;
+        return Object.keys(newErrors).length === 0;
+    }
 
     onMount(async () => {
         try {
@@ -50,7 +62,11 @@
                 }
             }
         } catch (error) {
-            toast.error('Failed to load data');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load data';
+            toast.error(errorMessage, {
+                duration: 4000,
+                position: 'top-right'
+            });
         }
     });
 
@@ -70,7 +86,11 @@
                 availableSlots = [...availableSlots, selectedTime].sort();
             }
         } catch (error) {
-            toast.error('Failed to load available slots');
+            const errorMessage = error instanceof Error ? error.message : 'Failed to load available slots';
+            toast.error(errorMessage, {
+                duration: 4000,
+                position: 'top-right'
+            });
         } finally {
             loadingSlots = false;
         }
@@ -87,37 +107,30 @@
     }
 
     function handleSubmit() {
-        try {
-            if (!selectedDate || !selectedTime) {
-                errors = { appointment_date: 'Appointment date and time is required' };
-                return;
-            }
+        // Validate and prepare appointment data
+        const appointmentDate = selectedDate && selectedTime ? `${selectedDate}T${selectedTime}` : '';
+        const appointmentData = {
+            patient_id: appointment.patient_id || '',
+            doctor_id: appointment.doctor_id || '',
+            appointment_date: appointmentDate,
+            status: appointment.status || 'Pending',
+            notes: appointment.notes
+        };
 
-            const appointmentDate = `${selectedDate}T${selectedTime}`;
-            const formData = {
-                patient_id: appointment.patient_id || '',
-                doctor_id: appointment.doctor_id || '',
-                appointment_date: appointmentDate,
-                status: appointment.status || 'Pending',
-                notes: appointment.notes
-            };
-
-            const validatedData = appointmentSchema.parse(formData);
-            errors = {};
-            dispatch('submit', validatedData);
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                errors = error.errors.reduce((acc, curr) => {
-                    const field = curr.path[0] as string;
-                    acc[field] = curr.message;
-                    return acc;
-                }, {} as Record<string, string>);
-            }
+        if (validateForm(appointmentData)) {
+            // Dispatch the event with the data
+            const event = new CustomEvent('submit', {
+                detail: appointmentData
+            });
+            props.onSubmit(appointmentData);
         }
     }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+<form onsubmit={(e) => { 
+    e.preventDefault();
+    handleSubmit();
+}} class="space-y-6">
     <div>
         <label for="patient" class="block text-sm font-medium text-gray-700">Patient</label>
         <select
@@ -140,7 +153,7 @@
         <select
             id="doctor"
             bind:value={appointment.doctor_id}
-            on:change={handleDoctorChange}
+            onchange={handleDoctorChange}
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         >
             <option value="">Select a doctor</option>
@@ -160,7 +173,7 @@
             id="date"
             bind:value={selectedDate}
             min={format(new Date(), 'yyyy-MM-dd')}
-            on:change={handleDateChange}
+            onchange={handleDateChange}
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         />
     </div>
@@ -169,7 +182,7 @@
         <label for="time" class="block text-sm font-medium text-gray-700">Time</label>
         {#if loadingSlots}
             <div class="mt-1 flex items-center">
-                <svg class="animate-spin h-5 w-5 text-indigo-600 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>

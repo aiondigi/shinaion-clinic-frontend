@@ -5,7 +5,7 @@
     import { page } from '$app/stores';
     import DoctorForm from '$lib/components/DoctorForm.svelte';
     import doctorService from '$lib/services/doctor';
-    import toast from 'svelte-french-toast';
+    import { toast } from "svelte-sonner";
     import type { Doctor } from '$lib/types';
 
     let doctor: Doctor;
@@ -23,10 +23,10 @@
         }
     });
 
-    async function handleSubmit(event: CustomEvent<Omit<Doctor, 'id' | 'created_at' | 'updated_at'>>) {
+    const onSubmit = async (data: Omit<Doctor, 'id' | 'created_at' | 'updated_at'>) => {
         try {
             loading = true;
-            await doctorService.updateDoctor($page.params.id, event.detail);
+            await doctorService.updateDoctor($page.params.id, data);
             toast.success('Doctor updated successfully');
             goto('/doctors');
         } catch (error) {
@@ -45,7 +45,7 @@
         </div>
         <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
             <button
-                on:click={() => goto('/doctors')}
+                onclick={() => goto('/doctors')}
                 class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
                 Back to list
@@ -63,7 +63,7 @@
                     </svg>
                 </div>
             {:else}
-                <DoctorForm {doctor} {loading} on:submit={handleSubmit} />
+                <DoctorForm {doctor} {loading} {onSubmit} />
             {/if}
         </div>
     </div>

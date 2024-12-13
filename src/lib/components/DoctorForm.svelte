@@ -1,21 +1,9 @@
 <!-- src/lib/components/DoctorForm.svelte -->
 <script lang="ts">
-    import { createEventDispatcher } from 'svelte';
-    import type { Doctor } from '$lib/types';
-    import { z } from 'zod';
+    import type { Doctor } from '$lib/types/index';
 
-    export let doctor: Partial<Doctor> = {};
-    export let loading = false;
-
-    const dispatch = createEventDispatcher<{
-        submit: Omit<Doctor, 'id' | 'created_at' | 'updated_at'>;
-    }>();
-
-    let errors: Record<string, string> = {};
-
-    // Initialize availability schedule if not present
-    if (!doctor.availability) {
-        doctor.availability = {
+    const { doctor = {
+        availability: {
             monday: { start: '09:00', end: '17:00', enabled: true },
             tuesday: { start: '09:00', end: '17:00', enabled: true },
             wednesday: { start: '09:00', end: '17:00', enabled: true },
@@ -23,22 +11,14 @@
             friday: { start: '09:00', end: '17:00', enabled: true },
             saturday: { start: '09:00', end: '13:00', enabled: true },
             sunday: { start: '00:00', end: '00:00', enabled: false }
-        };
-    }
+        }
+    }, loading = false, onSubmit } = $props<{
+        doctor?: Partial<Doctor>;
+        loading?: boolean;
+        onSubmit: (data: Omit<Doctor, 'id' | 'created_at' | 'updated_at'>) => void;
+    }>();
 
-    const doctorSchema = z.object({
-        full_name: z.string().min(1, 'Full name is required'),
-        specialization: z.string().optional(),
-        license_number: z.string().min(1, 'License number is required'),
-        sip: z.string().min(1, 'SIP is required'),
-        contact_number: z.string().optional(),
-        email: z.string().email('Invalid email').optional().or(z.literal('')),
-        availability: z.record(z.object({
-            start: z.string(),
-            end: z.string(),
-            enabled: z.boolean()
-        }))
-    });
+    let errors = $state<Record<string, string>>({});
 
     const days = [
         { id: 'monday', label: 'Monday' },
@@ -50,8 +30,45 @@
         { id: 'sunday', label: 'Sunday' }
     ];
 
+    function validateEmail(email: string): boolean {
+        return !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function validateRequired(value: string): boolean {
+        return  value.trim().length > 0;
+    }
+
+    function validateForm(): boolean {
+        errors = {};
+        let isValid = true;
+
+        if (!validateRequired(doctor.full_name || '')) {
+            errors.full_name = 'Full name is required';
+            isValid = false;
+        }
+
+        if (!validateRequired(doctor.license_number || '')) {
+            errors.license_number = 'License number is required';
+            isValid = false;
+        }
+
+        if (!validateRequired(doctor.sip || '')) {
+            errors.sip = 'SIP is required';
+            isValid = false;
+        }
+
+        if (doctor.email && !validateEmail(doctor.email)) {
+            errors.email = 'Invalid email';
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
     function handleSubmit() {
-        try {
+        if (loading) return;
+
+        if (validateForm()) {
             const formData = {
                 full_name: doctor.full_name || '',
                 specialization: doctor.specialization,
@@ -61,23 +78,15 @@
                 email: doctor.email,
                 availability: doctor.availability
             };
-
-            const validatedData = doctorSchema.parse(formData);
-            errors = {};
-            dispatch('submit', validatedData);
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                errors = error.errors.reduce((acc, curr) => {
-                    const field = curr.path[0] as string;
-                    acc[field] = curr.message;
-                    return acc;
-                }, {} as Record<string, string>);
-            }
+            onSubmit(formData);
         }
     }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+<form onsubmit={(e) => { 
+    e.preventDefault();
+    handleSubmit();
+}} class="space-y-6">
     <div>
         <label for="full_name" class="block text-sm font-medium text-gray-700">Full Name</label>
         <input

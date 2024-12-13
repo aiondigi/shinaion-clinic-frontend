@@ -63,6 +63,7 @@ export interface Vitals {
 }
 
 export interface MedicalRecord {
+	date: string | number | Date;
     id: string;
     patient_id: string;
     doctor_id: string;

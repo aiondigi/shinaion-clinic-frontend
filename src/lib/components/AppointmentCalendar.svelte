@@ -1,6 +1,5 @@
 <!-- src/lib/components/AppointmentCalendar.svelte -->
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, isSameDay } from 'date-fns';
     import type { Appointment } from '$lib/types';
 
@@ -55,13 +54,13 @@
         </div>
         <div class="flex space-x-4">
             <button
-                on:click={handlePrevWeek}
+                onclick={handlePrevWeek}
                 class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
                 Previous
             </button>
             <button
-                on:click={handleNextWeek}
+                onclick={handleNextWeek}
                 class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
                 Next
@@ -72,9 +71,11 @@
     <div class="grid grid-cols-7 gap-px bg-gray-200">
         {#each weekDates as date}
             <div class="bg-white">
-                <div
-                    class="py-2 px-3 border-b cursor-pointer hover:bg-gray-50"
-                    on:click={() => onDateSelect(date)}
+                <button
+                    type="button"
+                    class="w-full py-2 px-3 border-b hover:bg-gray-50 text-left"
+                    onclick={() => onDateSelect(date)}
+                    onkeydown={(e) => e.key === 'Enter' && onDateSelect(date)}
                 >
                     <h3 class="text-sm font-medium text-gray-900">
                         {format(date, 'EEEE')}
@@ -82,13 +83,14 @@
                     <p class="mt-1 text-sm text-gray-500">
                         {format(date, 'MMM d')}
                     </p>
-                </div>
+                </button>
                 <div class="max-h-96 overflow-y-auto px-2 py-2 space-y-1">
                     {#each getAppointmentsForDate(date) as appointment}
-                        <div
-                            class="rounded-md px-2 py-1 text-sm cursor-pointer hover:opacity-75"
-                            class:bg-gray-50={true}
-                            on:click={() => onAppointmentClick(appointment)}
+                        <button
+                            type="button"
+                            class="w-full rounded-md px-2 py-1 text-sm hover:opacity-75 text-left bg-gray-50"
+                            onclick={() => onAppointmentClick(appointment)}
+                            onkeydown={(e) => e.key === 'Enter' && onAppointmentClick(appointment)}
                         >
                             <div class="font-medium">
                                 {format(new Date(appointment.appointment_date), 'HH:mm')}
@@ -104,7 +106,7 @@
                             >
                                 {appointment.status}
                             </span>
-                        </div>
+                        </button>
                     {/each}
                 </div>
             </div>

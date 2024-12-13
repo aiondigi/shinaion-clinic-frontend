@@ -1,42 +1,48 @@
 <!-- src/lib/components/MedicalRecordForm.svelte -->
 <script lang="ts">
-    import { createEventDispatcher, onMount } from 'svelte';
-    import type { MedicalRecord, Doctor, Patient } from '$lib/types';
+    import { onMount } from 'svelte';
+    import type { MedicalRecord, Doctor, Patient } from '$lib/types/index';
     import doctorService from '$lib/services/doctor';
     import patientService from '$lib/services/patient';
     import VitalsForm from './VitalsForm.svelte';
     import MedicationList from './MedicationList.svelte';
     import AllergiesList from './AllergiesList.svelte';
     import DiagnosisCodeList from './DiagnosisCodeList.svelte';
-    import { z } from 'zod';
-    import toast from 'svelte-french-toast';
 
-    export let medicalRecord: Partial<MedicalRecord> = {};
-    export let loading = false;
-    export let patientId: string | undefined = undefined;
-
-    const dispatch = createEventDispatcher<{
-        submit: FormData;
-        deleteAttachment: { recordId: string; attachmentUrl: string };
+    let props = $props<{
+        onSubmit: (formData: FormData) => void;
+        onDeleteAttachment: (data: { recordId: string; attachmentUrl: string }) => void;
+        medicalRecord?: Partial<MedicalRecord>;
+        loading?: boolean;
+        patientId?: string;
     }>();
 
-    let errors: Record<string, string> = {};
-    let doctors: Doctor[] = [];
-    let patients: Patient[] = [];
-    let attachmentFiles: FileList | null = null;
-    let existingAttachments: string[] = medicalRecord.attachments?.map(a => a.url) || [];
+    let medicalRecord = $state(props.medicalRecord ?? {});
+    let loading = $derived(props.loading ?? false);
+    let patientId = $derived(props.patientId);
 
-    const medicalRecordSchema = z.object({
-        patient_id: z.string().min(1, 'Patient is required'),
-        doctor_id: z.string().min(1, 'Doctor is required'),
-        record_number: z.string().min(1, 'Record number is required'),
-        status: z.enum(['Draft', 'Final', 'Amended']),
-        chief_complaint: z.string().min(1, 'Chief complaint is required'),
-        subjective: z.string().min(1, 'Subjective notes are required'),
-        objective: z.string().min(1, 'Objective notes are required'),
-        assessment: z.string().min(1, 'Assessment is required'),
-        plan: z.string().min(1, 'Plan is required')
-    });
+    let errors = $state<Record<string, string>>({});
+    let doctors = $state<Doctor[]>([]);
+    let patients = $state<Patient[]>([]);
+    let attachmentFiles = $state<FileList | null>(null);
+    let existingAttachments = $derived(medicalRecord.attachments?.map((a: { url: string }) => a.url) || []);
+    let vitals = $state([]);
+
+    function validateForm(data: any): boolean {
+        errors = {};
+        
+        if (!data.patient_id) errors.patient_id = 'Patient is required';
+        if (!data.doctor_id) errors.doctor_id = 'Doctor is required';
+        if (!data.record_number) errors.record_number = 'Record number is required';
+        if (!['Draft', 'Final', 'Amended'].includes(data.status)) errors.status = 'Invalid status';
+        if (!data.chief_complaint) errors.chief_complaint = 'Chief complaint is required';
+        if (!data.subjective) errors.subjective = 'Subjective notes are required';
+        if (!data.objective) errors.objective = 'Objective notes are required';
+        if (!data.assessment) errors.assessment = 'Assessment is required';
+        if (!data.plan) errors.plan = 'Plan is required';
+
+        return Object.keys(errors).length === 0;
+    }
 
     onMount(async () => {
         try {
@@ -45,9 +51,11 @@
                 patientId ? patientService.getPatient(patientId) : patientService.getPatients()
             ]);
             doctors = doctorsData;
-            patients = patientId ? [patientsData] : patientsData;
+            patients = patientId 
+                ? (patientsData ? [patientsData as Patient] : [])
+                : (Array.isArray(patientsData) ? patientsData : []);
         } catch (error) {
-            toast.error('Failed to load data');
+            //toast.error('Failed to load data');
         }
     });
 
@@ -65,12 +73,13 @@
                 plan: medicalRecord.plan || ''
             };
 
-            const validatedData = medicalRecordSchema.parse(formData);
-            errors = {};
+            if (!validateForm(formData)) {
+                return;
+            }
 
             // Create FormData object for file upload
             const formDataObj = new FormData();
-            Object.entries(validatedData).forEach(([key, value]) => {
+            Object.entries(formData).forEach(([key, value]) => {
                 formDataObj.append(key, value);
             });
 
@@ -106,26 +115,19 @@
                 });
             }
 
-            dispatch('submit', formDataObj);
+            props.onSubmit(formDataObj);
         } catch (error) {
-            if (error instanceof z.ZodError) {
-                errors = error.errors.reduce((acc, curr) => {
-                    const field = curr.path[0] as string;
-                    acc[field] = curr.message;
-                    return acc;
-                }, {} as Record<string, string>);
-            }
         }
     }
 
     function handleDeleteAttachment(attachmentUrl: string) {
         if (!medicalRecord.id) return;
         if (confirm('Are you sure you want to delete this attachment?')) {
-            dispatch('deleteAttachment', {
+            props.onDeleteAttachment({
                 recordId: medicalRecord.id,
                 attachmentUrl
             });
-            existingAttachments = existingAttachments.filter(url => url !== attachmentUrl);
+            medicalRecord.attachments = medicalRecord.attachments?.filter((a: { url: string }) => a.url !== attachmentUrl) || [];
         }
     }
 
@@ -135,7 +137,7 @@
     }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} class="space-y-6">
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {#if !patientId}
             <div>
@@ -208,9 +210,9 @@
     </div>
 
     <!-- Vitals Section -->
-    <div class="border-t border-gray-200 pt-6">
+    <!-- <div class="border-t border-gray-200 pt-6">
         <VitalsForm bind:vitals={medicalRecord.vitals} disabled={loading} />
-    </div>
+    </div> -->
 
     <!-- Chief Complaint -->
     <div>
@@ -345,7 +347,7 @@
                         </a>
                         <button
                             type="button"
-                            on:click={() => handleDeleteAttachment(attachment)}
+                            onclick={() => handleDeleteAttachment(attachment)}
                             disabled={loading}
                             class="text-sm text-red-600 hover:text-red-900"
                         >

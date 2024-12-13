@@ -5,10 +5,10 @@
     import { page } from '$app/stores';
     import PatientForm from '$lib/components/PatientForm.svelte';
     import patientService from '$lib/services/patient';
-    import toast from 'svelte-french-toast';
+    import { toast } from "svelte-sonner";
     import type { Patient } from '$lib/types';
 
-    let patient: Patient;
+    let patient: Patient | null = null;
     let loading = false;
     let initialLoading = true;
 
@@ -23,10 +23,10 @@
         }
     });
 
-    async function handleSubmit(event: CustomEvent<Omit<Patient, 'id' | 'created_at' | 'updated_at'>>) {
+    const onSubmit = async (data: Omit<Patient, 'id' | 'created_at' | 'updated_at'>) => {
         try {
             loading = true;
-            await patientService.updatePatient($page.params.id, event.detail);
+            await patientService.updatePatient($page.params.id, data);
             toast.success('Patient updated successfully');
             goto('/patients');
         } catch (error) {
@@ -45,7 +45,7 @@
         </div>
         <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
             <button
-                on:click={() => goto('/patients')}
+                onclick={() => goto('/patients')}
                 class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
                 Back to list
@@ -63,7 +63,7 @@
                     </svg>
                 </div>
             {:else}
-                <PatientForm {patient} {loading} on:submit={handleSubmit} />
+                <PatientForm patient={patient || undefined} {loading} {onSubmit} />
             {/if}
         </div>
     </div>

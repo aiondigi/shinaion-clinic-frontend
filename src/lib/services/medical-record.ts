@@ -40,6 +40,7 @@ const medicalRecordService = {
             patient_id: response.data.patient?.id || '',
             doctor_id: response.data.doctor?.id || '',
             record_number: response.data.record_number || '',
+            date: new Date().toISOString(),
             status: response.data.status || 'Draft',
             chief_complaint: response.data.chief_complaint || '',
             subjective: response.data.subjective || '',

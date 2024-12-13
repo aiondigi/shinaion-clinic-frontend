@@ -34,13 +34,13 @@
             <input
                 type="text"
                 bind:value={newAllergy}
-                on:keydown={handleKeydown}
+                onkeydown={handleKeydown}
                 placeholder="Add allergy"
                 class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
             <button
                 type="button"
-                on:click={addAllergy}
+                onclick={addAllergy}
                 class="inline-flex items-center rounded-md border border-transparent bg-indigo-100 px-3 py-2 text-sm font-medium leading-4 text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
                 Add
@@ -58,7 +58,7 @@
                     {#if !disabled}
                         <button
                             type="button"
-                            on:click={() => removeAllergy(index)}
+                            onclick={() => removeAllergy(index)}
                             class="ml-1.5 inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-red-400 hover:bg-red-200 hover:text-red-500 focus:bg-red-500 focus:text-white focus:outline-none"
                         >
                             <span class="sr-only">Remove {allergy}</span>

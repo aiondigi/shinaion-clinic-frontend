@@ -5,7 +5,7 @@
     import { page } from '$app/stores';
     import AppointmentForm from '$lib/components/AppointmentForm.svelte';
     import appointmentService from '$lib/services/appointment';
-    import toast from 'svelte-french-toast';
+    import { toast } from "svelte-sonner";
     import type { Appointment } from '$lib/types';
 
     let appointment: Appointment;
@@ -23,10 +23,10 @@
         }
     });
 
-    async function handleSubmit(event: CustomEvent<Omit<Appointment, 'id' | 'created_at' | 'updated_at'>>) {
+    async function handleSubmit(data: Omit<Appointment, 'id' | 'created_at' | 'updated_at'>) {
         try {
             loading = true;
-            await appointmentService.updateAppointment($page.params.id, event.detail);
+            await appointmentService.updateAppointment($page.params.id, data);
             toast.success('Appointment updated successfully');
             goto('/appointments');
         } catch (error) {
@@ -59,13 +59,13 @@
         </div>
         <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-4">
             <button
-                on:click={handleDelete}
+                onclick={handleDelete}
                 class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
                 Delete
             </button>
             <button
-                on:click={() => goto('/appointments')}
+                onclick={() => goto('/appointments')}
                 class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
                 Back to calendar
@@ -83,7 +83,7 @@
                     </svg>
                 </div>
             {:else}
-                <AppointmentForm {appointment} {loading} on:submit={handleSubmit} />
+                <AppointmentForm {appointment} {loading} onSubmit={handleSubmit} />
             {/if}
         </div>
     </div>

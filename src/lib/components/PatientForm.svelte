@@ -1,58 +1,75 @@
 <!-- src/lib/components/PatientForm.svelte -->
 <script lang="ts">
-    import { createEventDispatcher } from 'svelte';
-    import type { Patient, Gender } from '$lib/types';
-    import { z } from 'zod';
+    import type { Patient, Gender } from '$lib/types/index';
 
-    export let patient: Partial<Patient> = {};
-    export let loading = false;
-
-    const dispatch = createEventDispatcher<{
-        submit: Omit<Patient, 'id' | 'created_at' | 'updated_at'>;
+    const { patient = {}, loading = false, onSubmit } = $props<{
+        patient?: Partial<Patient>;
+        loading?: boolean;
+        onSubmit: (data: Omit<Patient, 'id' | 'created_at' | 'updated_at'>) => void;
     }>();
 
-    let errors: Record<string, string> = {};
+    let errors = $state<Record<string, string>>({});
+    let form: HTMLFormElement;
 
-    const patientSchema = z.object({
-        full_name: z.string().min(1, 'Full name is required'),
-        date_of_birth: z.string().min(1, 'Date of birth is required'),
-        gender: z.enum(['Male', 'Female', 'Other'] as const),
-        contact_number: z.string().optional(),
-        email: z.string().email('Invalid email').optional().or(z.literal('')),
-        address: z.string().optional(),
-        insurance_id: z.string().min(1, 'Insurance ID is required'),
-    });
-
-    function handleSubmit() {
-        try {
-            const formData = {
-                full_name: patient.full_name || '',
-                date_of_birth: patient.date_of_birth || '',
-                gender: patient.gender || 'Male',
-                contact_number: patient.contact_number,
-                email: patient.email,
-                address: patient.address,
-                insurance_id: patient.insurance_id || '',
-            };
-
-            const validatedData = patientSchema.parse(formData);
-            errors = {};
-            dispatch('submit', validatedData);
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                errors = error.errors.reduce((acc, curr) => {
-                    const field = curr.path[0] as string;
-                    acc[field] = curr.message;
-                    return acc;
-                }, {} as Record<string, string>);
-            }
+    const validateForm = () => {
+        errors = {};
+        
+        if (!patient.full_name?.trim()) {
+            errors.full_name = 'Full name is required';
         }
-    }
+        
+        if (!patient.gender) {
+            errors.gender = 'Gender is required';
+        }
+        
+        if (!patient.date_of_birth) {
+            errors.date_of_birth = 'Date of birth is required';
+        }
+        
+        if (!patient.contact_number?.trim()) {
+            errors.contact_number = 'Contact number is required';
+        }
+        
+        if (!patient.email?.trim()) {
+            errors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patient.email)) {
+            errors.email = 'Invalid email address';
+        }
+        
+        if (!patient.address?.trim()) {
+            errors.address = 'Address is required';
+        }
+        
+        if (!patient.insurance_id?.trim()) {
+            errors.insurance_id = 'Insurance ID is required';
+        }
+
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleSubmit = () => {
+        if (loading) return;
+
+        if (validateForm()) {
+            onSubmit({
+                full_name: patient.full_name!,
+                gender: patient.gender!,
+                date_of_birth: patient.date_of_birth!,
+                contact_number: patient.contact_number!,
+                email: patient.email!,
+                address: patient.address!,
+                insurance_id: patient.insurance_id!,
+            });
+        }
+    };
 
     const genders: Gender[] = ['Male', 'Female', 'Other'];
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+<form onsubmit={(e) => { 
+    e.preventDefault();
+    handleSubmit();
+}} class="space-y-6">
     <div>
         <label for="full_name" class="block text-sm font-medium text-gray-700">Full Name</label>
         <input

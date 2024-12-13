@@ -2,7 +2,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import authService from '$lib/services/auth';
-    import toast from 'svelte-french-toast';
+    import { toast } from "svelte-sonner";
 
     let email = '';
     let password = '';

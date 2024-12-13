@@ -1,82 +1,70 @@
 <!-- src/routes/(auth)/login/+page.svelte -->
 <script lang="ts">
-    import { goto } from '$app/navigation';
-    import authService from '$lib/services/auth';
-    import toast from 'svelte-french-toast';
+	import { goto } from '$app/navigation';
+	import authService from '$lib/services/auth';
+	import { Toaster } from "$lib/components/ui/sonner/index.js";
+    import { toast } from "svelte-sonner";
+    
+	let email = '';
+	let password = '';
+	let loading = false;
 
-    let email = '';
-    let password = '';
-    let loading = false;
-
-    async function handleSubmit() {
-        try {
-            loading = true;
-            await authService.login({ email, password });
-            toast.success('Login successful');
-            await goto('/dashboard');
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || 'Login failed');
-        } finally {
-            loading = false;
-        }
-    }
+	async function handleSubmit() {
+		try {
+			loading = true;
+			await authService.login({ email, password });
+			toast.success('Login successful!');
+			await goto('/dashboard');
+		} catch (error: any) {
+			toast.error(error.response?.data?.message || 'Login failed');
+		} finally {
+			loading = false;
+		}
+	}
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Sign in to your account
-            </h2>
-        </div>
-        <form class="mt-8 space-y-6" on:submit|preventDefault={handleSubmit}>
-            <div class="rounded-md shadow-sm -space-y-px">
-                <div>
-                    <label for="email" class="sr-only">Email address</label>
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        bind:value={email}
-                        class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                        placeholder="Email address"
-                    />
-                </div>
-                <div>
-                    <label for="password" class="sr-only">Password</label>
-                    <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        required
-                        bind:value={password}
-                        class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                        placeholder="Password"
-                    />
-                </div>
-            </div>
+<form on:submit|preventDefault={handleSubmit}>
+	<div class="flex h-screen w-full items-center justify-center px-4">
+		<Card.Root class="mx-auto w-[350px] max-w-sm">
+			<Card.Header>
+				<Card.Title class="text-2xl">Login</Card.Title>
+				<Card.Description>Enter your email below to login to your account</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<div class="grid gap-4">
+					<div class="grid gap-2">
+						<Label for="email">Email</Label>
+						<Input
+							id="email"
+							bind:value={email}
+							type="email"
+							placeholder="m@example.com"
+							required
+						/>
+					</div>
+					<div class="grid gap-2">
+						<div class="flex items-center">
+							<Label for="password">Password</Label>
+							<a href="##" class="ml-auto inline-block text-sm underline">
+								Forgot your password?
+							</a>
+						</div>
+						<Input id="password" bind:value={password} type="password" required />
+					</div>
+					<Button type="submit" class="w-full">Login</Button>
+					<Button variant="outline" class="w-full">Login with Google</Button>
+				</div>
+				<div class="mt-4 text-center text-sm">
+					Don't have an account?
+					<a href="##" class="underline"> Sign up </a>
+				</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
+</form>
 
-            <div>
-                <button
-                    type="submit"
-                    disabled={loading}
-                    class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                    {#if loading}
-                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                            <!-- Loading spinner -->
-                            <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        </span>
-                        Processing...
-                    {:else}
-                        Sign in
-                    {/if}
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+<Toaster />

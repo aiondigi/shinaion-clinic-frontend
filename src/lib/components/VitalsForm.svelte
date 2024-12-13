@@ -1,22 +1,24 @@
 <!-- src/lib/components/VitalsForm.svelte -->
 <script lang="ts">
-    import type { Vitals } from '$lib/types';
+    import type { Vitals } from '$lib/types/index';
 
-    export let vitals: Partial<Vitals> = {};
-    export let disabled = false;
+    const { vitals = $bindable({}), disabled = false } = $props<{
+        vitals?: Partial<Vitals>;
+        disabled?: boolean;
+    }>();
 
-    function calculateBMI() {
+    const calculateBMI = () => {
         if (vitals.height && vitals.weight) {
             const heightInMeters = vitals.height / 100;
             vitals.bmi = Number((vitals.weight / (heightInMeters * heightInMeters)).toFixed(1));
         }
-    }
+    };
 
-    $: {
+    $effect(() => {
         if (vitals.height || vitals.weight) {
             calculateBMI();
         }
-    }
+    });
 </script>
 
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
